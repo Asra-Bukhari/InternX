@@ -1,0 +1,2 @@
+# InternX
+InternX is an AI-powered student-only internship platform where verified university students work on short-term projects. The system uses AI to generate skill tests from job descriptions, monitor tests for cheating, and match students to the best-fit projects. It also includes features such as student verification, controlled project applications, project workspaces with task tracking and deliverable submission, in-platform chat and meeting scheduling, secure payment processing, and a mutual review and rating system.
