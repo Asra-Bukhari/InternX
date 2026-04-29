@@ -10,6 +10,8 @@ const userSchema = new mongoose.Schema(
       enum: ["student", "business", "admin"],
     },
     isVerified: { type: Boolean, default: false },
+    verificationCode: { type: String },
+    studentCardUrl: { type: String },
   },
   { timestamps: true }
 );

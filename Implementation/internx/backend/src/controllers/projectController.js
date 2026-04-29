@@ -34,7 +34,11 @@ exports.getAllProjects = async (req, res) => {
   try {
     const { skillsRequired, difficulty, contractType } = req.query;
 
-    const filter = { status: "open" };
+    // Only show projects that are 'open' AND not yet assigned to a student
+    const filter = { 
+      status: "open",
+      selectedStudent: { $exists: false } 
+    };
 
     if (difficulty) filter.difficulty = difficulty;
     if (contractType) filter.contractType = contractType;
