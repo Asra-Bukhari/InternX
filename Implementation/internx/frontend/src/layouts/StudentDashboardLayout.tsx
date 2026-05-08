@@ -1,8 +1,9 @@
 import { Outlet } from "react-router";
 import { DashboardTopBar, type DashboardNavItem } from "@/components/nav/DashboardTopBar";
 import { RequireRole } from "@/lib/auth/RequireRole";
+import { useAuth } from "@/lib/auth/useAuth";
 
-const STUDENT_NAV: DashboardNavItem[] = [
+const BASE_NAV: DashboardNavItem[] = [
   { to: "/dashboard/student", label: "Dashboard", end: true },
   { to: "/dashboard/student/projects", label: "Projects" },
   { to: "/dashboard/student/applications", label: "Applications" },
@@ -13,11 +14,20 @@ const STUDENT_NAV: DashboardNavItem[] = [
 ];
 
 export default function StudentDashboardLayout() {
+  const { profileComplete } = useAuth();
+
+  const nav: DashboardNavItem[] = profileComplete
+    ? BASE_NAV
+    : [
+        ...BASE_NAV,
+        { to: "/dashboard/student/profile/setup", label: "Complete Setup" },
+      ];
+
   return (
     <RequireRole role="student">
       <div className="min-h-screen bg-bg text-foreground">
         <DashboardTopBar
-          navItems={STUDENT_NAV}
+          navItems={nav}
           brandSuffix="/ Student"
           profileHref="/dashboard/student/profile"
           showSearch

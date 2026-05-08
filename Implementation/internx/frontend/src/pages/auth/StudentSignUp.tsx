@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
+import { AlertCircle } from "lucide-react";
 import { StepIndicator } from "@/components/forms/StepIndicator";
 import { useAuth } from "@/lib/auth/useAuth";
+import { profileApi } from "@/lib/api/profile";
+import { ApiError } from "@/lib/api/client";
 import { StudentSignUpStep1 } from "./student-signup/Step1Account";
 import { StudentSignUpStep2 } from "./student-signup/Step2Verification";
 import { StudentSignUpStep3 } from "./student-signup/Step3Academic";
@@ -50,28 +53,59 @@ const INITIAL: StudentSignUpData = {
 const STEP_LABELS = ["Account", "Verification", "Academic"];
 
 export default function StudentSignUp() {
-  const { loginAs } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [data, setData] = useState<StudentSignUpData>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   function patch(p: Partial<StudentSignUpData>) {
     setData((d) => ({ ...d, ...p }));
   }
 
   function next() {
+    setError(null);
     setStep((s) => (s < 3 ? ((s + 1) as 1 | 2 | 3) : s));
   }
   function back() {
+    setError(null);
     setStep((s) => (s > 1 ? ((s - 1) as 1 | 2 | 3) : s));
   }
 
-  function submit() {
+  async function submit() {
+    setError(null);
     setSubmitting(true);
-    // Phase 6 will replace this with: await api.auth.registerStudent(data)
-    loginAs("student");
-    navigate("/dashboard/student", { replace: true });
+    try {
+      // 1) Register the student account
+      await register({
+        name: `${data.firstName.trim()} ${data.lastName.trim()}`.trim(),
+        email: data.email.trim(),
+        password: data.password,
+        role: "student",
+      });
+
+      // 2) Persist academic info to the profile
+      try {
+        await profileApi.updateRaw({
+          university: data.university,
+          semester: data.semester,
+        });
+      } catch {
+        /* profile update is non-fatal — user completes setup later */
+      }
+
+      navigate("/dashboard/student", { replace: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Could not create account. Please try again.";
+      setError(msg);
+      setStep(1); // surface conflicts (e.g. email taken) on Step 1
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -84,6 +118,13 @@ export default function StudentSignUp() {
       <div className="mb-6">
         <StepIndicator current={step} total={3} labels={STEP_LABELS} />
       </div>
+
+      {error && (
+        <div className="mb-4 flex items-start gap-2 rounded-md border border-status-danger/30 bg-status-danger-soft px-3 py-2.5 text-[12.5px] text-status-danger">
+          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       {step === 1 && <StudentSignUpStep1 data={data} onChange={patch} onNext={next} />}
       {step === 2 && <StudentSignUpStep2 data={data} onChange={patch} onNext={next} onBack={back} />}

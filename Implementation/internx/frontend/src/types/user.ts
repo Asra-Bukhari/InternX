@@ -6,6 +6,7 @@ export interface User {
   email: string;
   role: UserRole;
   isVerified: boolean;
+  studentCardUrl?: string;
   createdAt?: string;
   updatedAt?: string;
 }

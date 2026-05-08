@@ -2,15 +2,21 @@ import { Award, Lock, CheckCircle2 } from "lucide-react";
 import { PageShell } from "@/components/forms/PageShell";
 import { Panel } from "@/components/forms/Panel";
 import { ProgressBar } from "@/components/data-display/ProgressBar";
-import { LEVELS, STUDENT } from "@/lib/mock/student";
+import { OnboardingBanner } from "@/components/feedback/OnboardingBanner";
+import { useAuth } from "@/lib/auth/useAuth";
+import { LEVELS, levelForCount, nextLevelDelta } from "@/lib/constants/levels";
 import { cn } from "@/lib/utils/cn";
 
 export default function StudentLevels() {
-  const currentIndex = STUDENT.levelIndex;
-  const completed = STUDENT.completed;
+  const { profile } = useAuth();
+  const completed = profile?.completedProjects ?? 0;
+  const { index: currentIndex, level } = levelForCount(completed);
+  const { next, remaining, pct } = nextLevelDelta(completed);
 
   return (
     <PageShell title="Levels" subtitle="Complete more projects to unlock new tiers, perks, and pay rates.">
+      <OnboardingBanner />
+
       <Panel padding="p-6" className="mb-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -19,15 +25,15 @@ export default function StudentLevels() {
             </div>
             <div>
               <p className="text-[12px] text-text-subtle uppercase tracking-wider">Current level</p>
-              <p className="text-[20px] font-bold text-text">{LEVELS[currentIndex].name}</p>
+              <p className="text-[20px] font-bold text-text">{level.name}</p>
             </div>
           </div>
           <div className="flex-1 min-w-[260px]">
             <div className="flex justify-between text-[11.5px] text-text-subtle mb-1.5">
-              <span>{completed} projects completed</span>
-              <span>2 to next tier</span>
+              <span>{completed} project{completed === 1 ? "" : "s"} completed</span>
+              <span>{next ? `${remaining} to ${next.name.replace("InternX ", "")}` : "Top tier"}</span>
             </div>
-            <ProgressBar value={70} />
+            <ProgressBar value={pct} />
           </div>
         </div>
       </Panel>
@@ -36,10 +42,11 @@ export default function StudentLevels() {
         {LEVELS.map((lvl, i) => {
           const status = i < currentIndex ? "completed" : i === currentIndex ? "current" : "locked";
           return (
-            <Panel key={lvl.name} padding="p-6" className={cn(
-              "relative",
-              status === "current" && "border-brand/40",
-            )}>
+            <Panel
+              key={lvl.name}
+              padding="p-6"
+              className={cn("relative", status === "current" && "border-brand/40")}
+            >
               {status === "completed" && (
                 <div className="absolute right-4 top-4 grid h-7 w-7 place-items-center rounded-full bg-status-success-soft text-status-success">
                   <CheckCircle2 size={14}/>

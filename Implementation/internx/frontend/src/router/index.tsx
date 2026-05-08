@@ -4,6 +4,7 @@ import PublicLayout from "@/layouts/PublicLayout";
 import AuthLayout from "@/layouts/AuthLayout";
 import StudentDashboardLayout from "@/layouts/StudentDashboardLayout";
 import BusinessDashboardLayout from "@/layouts/BusinessDashboardLayout";
+import { RequireProfileComplete } from "@/lib/auth/RequireRole";
 
 import Home from "@/pages/public/Home";
 import HowItWorks from "@/pages/public/HowItWorks";
@@ -24,6 +25,7 @@ import StudentApplications from "@/pages/student/Applications";
 import StudentActiveProject from "@/pages/student/ActiveProject";
 import StudentMessages from "@/pages/student/Messages";
 import StudentProfile from "@/pages/student/Profile";
+import StudentProfileSetup from "@/pages/student/ProfileSetup";
 import StudentLevels from "@/pages/student/Levels";
 
 import BusinessDashboard from "@/pages/business/Dashboard";
@@ -36,8 +38,16 @@ import BusinessMessages from "@/pages/business/Messages";
 import BusinessPayments from "@/pages/business/Payments";
 import BusinessProfile from "@/pages/business/Profile";
 
+/** Wrap a route element to require profile completion (student-only feature gate). */
+function gated(Component: React.ComponentType): React.ReactElement {
+  return (
+    <RequireProfileComplete>
+      <Component />
+    </RequireProfileComplete>
+  );
+}
+
 export const router = createBrowserRouter([
-  // Public marketing site
   {
     path: "/",
     Component: PublicLayout,
@@ -50,8 +60,6 @@ export const router = createBrowserRouter([
       { path: "*", Component: NotFound },
     ],
   },
-
-  // Auth flow
   {
     path: "/",
     Component: AuthLayout,
@@ -62,25 +70,27 @@ export const router = createBrowserRouter([
       { path: "signup/business", Component: BusinessSignUp },
     ],
   },
-
-  // Student dashboard
   {
     path: "/dashboard/student",
     Component: StudentDashboardLayout,
     children: [
       { index: true, Component: StudentDashboard },
+      // Browsing is allowed even when profile incomplete; Apply button is gated on the page.
       { path: "projects", Component: StudentProjects },
       { path: "projects/:id", Component: StudentProjectDetails },
-      { path: "applications", Component: StudentApplications },
-      { path: "active", Component: StudentActiveProject },
-      { path: "messages", Component: StudentMessages },
-      { path: "messages/:threadId", Component: StudentMessages },
+
+      // Setup + profile editing are always accessible.
       { path: "profile", Component: StudentProfile },
+      { path: "profile/setup", Component: StudentProfileSetup },
       { path: "levels", Component: StudentLevels },
+
+      // Feature pages — locked until setup complete.
+      { path: "applications", element: gated(StudentApplications) },
+      { path: "active", element: gated(StudentActiveProject) },
+      { path: "messages", element: gated(StudentMessages) },
+      { path: "messages/:threadId", element: gated(StudentMessages) },
     ],
   },
-
-  // Business dashboard
   {
     path: "/dashboard/business",
     Component: BusinessDashboardLayout,

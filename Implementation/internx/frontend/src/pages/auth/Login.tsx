@@ -1,28 +1,55 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router";
-import { Eye, EyeOff, ArrowRight, GraduationCap, Building2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, AlertCircle } from "lucide-react";
 import { FormField } from "@/components/forms/FormField";
 import { PrimaryButton } from "@/components/forms/PrimaryButton";
 import { useAuth } from "@/lib/auth/useAuth";
 import { Input } from "@/components/ui/input";
-import type { UserRole } from "@/types/user";
+import { ApiError } from "@/lib/api/client";
 
 export default function Login() {
-  const { loginAs } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation() as { state?: { from?: string } };
 
-  const [userType, setUserType] = useState<Exclude<UserRole, "admin">>("student");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  function onSubmit(e: React.FormEvent) {
+  function dashboardFor(role: string): string {
+    if (role === "business") return "/dashboard/business";
+    if (role === "admin") return "/dashboard/business";
+    return "/dashboard/student";
+  }
+
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    // Mock auth — Phase 6 will wire to /api/auth/login
-    loginAs(userType);
-    const target = location.state?.from ?? `/dashboard/${userType}`;
-    navigate(target, { replace: true });
+    if (submitting) return;
+    setError(null);
+
+    if (!email.trim() || !password) {
+      setError("Email and password are required.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const user = await login({ email: email.trim(), password });
+      const target = location.state?.from && location.state.from !== "/login"
+        ? location.state.from
+        : dashboardFor(user.role);
+      navigate(target, { replace: true });
+    } catch (err) {
+      const msg =
+        err instanceof ApiError
+          ? err.message
+          : "Login failed. Please try again.";
+      setError(msg);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -32,22 +59,12 @@ export default function Login() {
         <p className="mt-2 text-[13.5px] text-text-muted">Log in to continue to InternX.</p>
       </div>
 
-      {/* Role toggle */}
-      <div className="mt-7 grid grid-cols-2 gap-2 rounded-md border border-border-default bg-surface-2 p-1">
-        {(["student", "business"] as const).map((t) => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setUserType(t)}
-            className={`flex items-center justify-center gap-2 rounded px-3 py-2 text-[12.5px] font-medium transition-colors ${
-              userType === t ? "bg-brand text-brand-foreground" : "text-text-muted hover:text-text"
-            }`}
-          >
-            {t === "student" ? <GraduationCap size={14} /> : <Building2 size={14} />}
-            {t === "student" ? "Student" : "Business"}
-          </button>
-        ))}
-      </div>
+      {error && (
+        <div className="mt-6 flex items-start gap-2 rounded-md border border-status-danger/30 bg-status-danger-soft px-3 py-2.5 text-[12.5px] text-status-danger">
+          <AlertCircle size={14} className="mt-0.5 flex-shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4">
         <FormField label="Email" htmlFor="email" required>
@@ -56,7 +73,8 @@ export default function Login() {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder={userType === "student" ? "you@university.edu" : "you@company.com"}
+            placeholder="you@example.com"
+            autoComplete="email"
             required
           />
         </FormField>
@@ -68,6 +86,7 @@ export default function Login() {
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
               required
               className="pr-10"
             />
@@ -75,6 +94,7 @@ export default function Login() {
               type="button"
               onClick={() => setShowPassword((s) => !s)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-subtle hover:text-text"
+              tabIndex={-1}
             >
               {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
@@ -89,8 +109,8 @@ export default function Login() {
           <Link to="#" className="text-brand hover:underline">Forgot password?</Link>
         </div>
 
-        <PrimaryButton size="lg" className="w-full" icon={<ArrowRight size={15} />}>
-          Log in as {userType === "student" ? "Student" : "Business"}
+        <PrimaryButton size="lg" className="w-full" icon={<ArrowRight size={15} />} disabled={submitting}>
+          {submitting ? "Logging in…" : "Log in"}
         </PrimaryButton>
       </form>
 
