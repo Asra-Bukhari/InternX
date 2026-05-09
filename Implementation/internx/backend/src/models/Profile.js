@@ -15,6 +15,8 @@ const profileSchema = new mongoose.Schema(
 
     completedProjects: { type: Number, default: 0 },
     rating: { type: Number, default: 0 },
+
+    skillBadges: [{ type: String }], // e.g. ["UI/UX", "Machine Learning", "React"]
   },
   { timestamps: true }
 );
