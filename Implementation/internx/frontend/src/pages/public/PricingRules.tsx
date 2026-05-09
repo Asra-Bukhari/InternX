@@ -4,10 +4,9 @@ import { PublicPageHero, PublicSection } from "@/components/feedback/PublicPageH
 import { DifficultyTag } from "@/components/data-display/DifficultyTag";
 
 const TIERS = [
-  { level: "Basic" as const, range: "Suitable for all levels", typicalBudget: "$50 – $300", duration: "1 – 2 weeks" },
-  { level: "Medium" as const, range: "Associate+", typicalBudget: "$300 – $1,200", duration: "2 – 6 weeks" },
-  { level: "Hard" as const, range: "Professional+", typicalBudget: "$1,200 – $4,000", duration: "4 – 10 weeks" },
-  { level: "Hardcore" as const, range: "Expert only", typicalBudget: "$4,000+", duration: "8+ weeks" },
+  { level: "easy" as const, range: "Suitable for all levels", typicalBudget: "$50 – $300", duration: "1 – 2 weeks" },
+  { level: "medium" as const, range: "Associate+", typicalBudget: "$300 – $1,200", duration: "2 – 6 weeks" },
+  { level: "hard" as const, range: "Professional+", typicalBudget: "$1,200 – $4,000", duration: "4 – 10 weeks" },
 ];
 
 export default function PricingRules() {
@@ -20,7 +19,7 @@ export default function PricingRules() {
       />
 
       <PublicSection title="Project tiers">
-        <div className="grid md:grid-cols-2 gap-5">
+        <div className="grid md:grid-cols-3 gap-5">
           {TIERS.map((t) => (
             <Panel key={t.level} padding="p-6">
               <div className="flex items-center justify-between">

@@ -1,23 +1,52 @@
 const Project = require("../models/Project");
 
-// @desc    Create a new project/internship
+const ALLOWED_FIELDS = [
+  "title",
+  "summary",
+  "description",
+  "category",
+  "skillsRequired",
+  "difficulty",
+  "contractType",
+  "durationLabel",
+  "hoursPerDay",
+  "budget",
+  "paymentNotes",
+  "deliverables",
+];
+
+function pickBody(body) {
+  const out = {};
+  for (const k of ALLOWED_FIELDS) {
+    if (body[k] !== undefined) out[k] = body[k];
+  }
+  return out;
+}
+
+// @desc    Create a new project
 // @route   POST /api/projects
 // @access  Private (business only)
 exports.createProject = async (req, res) => {
   try {
-    const { title, description, skillsRequired, difficulty, contractType } = req.body;
-
-    if (!title || !description || !difficulty || !contractType) {
-      return res.status(400).json({ message: "title, description, difficulty, and contractType are required" });
+    const data = pickBody(req.body);
+    if (!data.title || !data.description || !data.difficulty || !data.contractType) {
+      return res
+        .status(400)
+        .json({ message: "title, description, difficulty, and contractType are required" });
+    }
+    if (!data.skillsRequired || data.skillsRequired.length < 3) {
+      return res.status(400).json({ message: "Select at least 3 technology tags" });
+    }
+    if (data.skillsRequired.length > 6) {
+      return res.status(400).json({ message: "Maximum 6 technology tags allowed" });
+    }
+    if (data.deliverables && data.deliverables.length > 10) {
+      return res.status(400).json({ message: "Maximum 10 deliverables allowed" });
     }
 
     const project = await Project.create({
+      ...data,
       businessId: req.user._id,
-      title,
-      description,
-      skillsRequired: skillsRequired || [],
-      difficulty,
-      contractType,
     });
 
     res.status(201).json({ message: "Project created successfully", project });
@@ -27,23 +56,25 @@ exports.createProject = async (req, res) => {
   }
 };
 
-// @desc    Get all open projects with optional filters
+// @desc    Get open projects (marketplace) — optional filters
 // @route   GET /api/projects
-// @access  Public
+// @access  Private (any authenticated user)
 exports.getAllProjects = async (req, res) => {
   try {
-    const { skillsRequired, difficulty, contractType } = req.query;
+    const { skillsRequired, difficulty, contractType, owner } = req.query;
 
-    // Only show projects that are 'open' AND not yet assigned to a student
-    const filter = { 
-      status: "open",
-      selectedStudent: { $exists: false } 
-    };
+    let filter;
+    if (owner === "me") {
+      // Owner view — return all the caller's projects regardless of status
+      filter = { businessId: req.user._id };
+    } else {
+      // Marketplace view — open and unassigned
+      filter = { status: "open", selectedStudent: { $exists: false } };
+    }
 
     if (difficulty) filter.difficulty = difficulty;
     if (contractType) filter.contractType = contractType;
     if (skillsRequired) {
-      // Support comma-separated skills: ?skillsRequired=React,Node
       const skillsArray = skillsRequired.split(",").map((s) => s.trim());
       filter.skillsRequired = { $in: skillsArray };
     }
@@ -61,17 +92,14 @@ exports.getAllProjects = async (req, res) => {
 
 // @desc    Get a single project by ID
 // @route   GET /api/projects/:id
-// @access  Public
+// @access  Private
 exports.getProjectById = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id)
       .populate("businessId", "name email")
       .populate("selectedStudent", "name email");
 
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
+    if (!project) return res.status(404).json({ message: "Project not found" });
     res.status(200).json({ project });
   } catch (error) {
     console.error("Get project error:", error);
@@ -85,24 +113,13 @@ exports.getProjectById = async (req, res) => {
 exports.updateProject = async (req, res) => {
   try {
     const project = await Project.findById(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
-    // Only the business that created it can update
+    if (!project) return res.status(404).json({ message: "Project not found" });
     if (project.businessId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Forbidden: You do not own this project" });
     }
 
-    const { title, description, skillsRequired, difficulty, contractType } = req.body;
-
-    if (title) project.title = title;
-    if (description) project.description = description;
-    if (skillsRequired) project.skillsRequired = skillsRequired;
-    if (difficulty) project.difficulty = difficulty;
-    if (contractType) project.contractType = contractType;
-
+    const data = pickBody(req.body);
+    Object.assign(project, data);
     await project.save();
 
     res.status(200).json({ message: "Project updated successfully", project });
@@ -121,15 +138,13 @@ exports.updateProjectStatus = async (req, res) => {
     const validStatuses = ["open", "in-progress", "completed"];
 
     if (!status || !validStatuses.includes(status)) {
-      return res.status(400).json({ message: `status must be one of: ${validStatuses.join(", ")}` });
+      return res
+        .status(400)
+        .json({ message: `status must be one of: ${validStatuses.join(", ")}` });
     }
 
     const project = await Project.findById(req.params.id);
-
-    if (!project) {
-      return res.status(404).json({ message: "Project not found" });
-    }
-
+    if (!project) return res.status(404).json({ message: "Project not found" });
     if (project.businessId.toString() !== req.user._id.toString()) {
       return res.status(403).json({ message: "Forbidden: You do not own this project" });
     }

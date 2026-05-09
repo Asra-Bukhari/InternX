@@ -1,21 +1,15 @@
-import { FileItem } from "@/components/domain/FileItem";
-import { GhostButton } from "@/components/forms/GhostButton";
-import { Upload } from "lucide-react";
-import { WORKSPACE_FILES } from "@/lib/mock/business";
+import { FolderOpen } from "lucide-react";
+import { Panel } from "@/components/forms/Panel";
+import { EmptyState } from "@/components/feedback/EmptyState";
 
 export function FilesTab() {
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-[16px] font-semibold text-text">Files</h2>
-          <p className="text-[12px] text-text-subtle">{WORKSPACE_FILES.length} files shared</p>
-        </div>
-        <GhostButton size="sm" icon={<Upload size={13} />}>Upload</GhostButton>
-      </div>
-      <div className="space-y-2">
-        {WORKSPACE_FILES.map((f) => <FileItem key={f.id} file={f} />)}
-      </div>
-    </div>
+    <Panel padding="p-12">
+      <EmptyState
+        icon={<FolderOpen size={20} />}
+        title="No general files yet"
+        description="Use the Deliverables tab to view work submitted by the student. General file sharing requires backend support."
+      />
+    </Panel>
   );
 }
