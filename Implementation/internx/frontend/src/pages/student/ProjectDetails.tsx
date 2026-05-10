@@ -20,7 +20,7 @@ import { PrimaryButton } from "@/components/forms/PrimaryButton";
 import { GhostButton } from "@/components/forms/GhostButton";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { OnboardingBanner } from "@/components/feedback/OnboardingBanner";
-import { ApplyModal } from "@/components/domain/ApplyModal";
+import { ProjectTestModal } from "@/components/domain/ProjectTestModal";
 import { useAuth } from "@/lib/auth/useAuth";
 import { projectsApi } from "@/lib/api/projects";
 import { applicationsApi, skillMatchOk } from "@/lib/api/applications";
@@ -291,16 +291,13 @@ export default function StudentProjectDetails() {
         </aside>
       </div>
 
-      <ApplyModal
-        projectId={project._id}
-        projectTitle={project.title}
-        matchedTags={skillMatch?.matched ?? []}
+      <ProjectTestModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onApplied={() => {
-          setApplied(true);
-          setModalOpen(false);
-        }}
+        projectId={project._id}
+        projectTitle={project.title}
+        projectDescription={project.description}
+        skillsRequired={skills}
       />
     </PageShell>
   );

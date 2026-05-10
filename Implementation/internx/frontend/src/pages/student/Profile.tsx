@@ -1,15 +1,20 @@
+import { useState } from "react";
 import { Link } from "react-router";
-import { Mail, GraduationCap, Calendar, Star, MapPin, Edit3, Github, ExternalLink } from "lucide-react";
+import { Mail, GraduationCap, Calendar, Star, MapPin, Edit3, Github, ExternalLink, Sparkles } from "lucide-react";
 import { PageShell } from "@/components/forms/PageShell";
 import { Panel } from "@/components/forms/Panel";
 import { SkillChip } from "@/components/data-display/SkillChip";
 import { GhostButton } from "@/components/forms/GhostButton";
+import { PrimaryButton } from "@/components/forms/PrimaryButton";
 import { OnboardingBanner } from "@/components/feedback/OnboardingBanner";
+import { SkillBadgeModal } from "@/components/domain/SkillBadgeModal";
 import { useAuth } from "@/lib/auth/useAuth";
 import { levelForCount } from "@/lib/constants/levels";
 
 export default function StudentProfile() {
   const { user, profile } = useAuth();
+  const [badgeModalOpen, setBadgeModalOpen] = useState(false);
+
   if (!user) return null;
 
   const ext = profile?.ext ?? {};
@@ -70,7 +75,16 @@ export default function StudentProfile() {
             </>
           )}
 
-          <h3 className={`text-[15px] font-semibold text-text ${ext.bio ? "mt-7" : ""}`}>Skills</h3>
+          <div className={`flex items-center justify-between ${ext.bio ? "mt-7" : ""}`}>
+            <h3 className="text-[15px] font-semibold text-text">Skills</h3>
+            <PrimaryButton
+              size="sm"
+              icon={<Sparkles size={13} />}
+              onClick={() => setBadgeModalOpen(true)}
+            >
+              Add Skill Badge
+            </PrimaryButton>
+          </div>
           {skills.length > 0 ? (
             <div className="mt-3 flex flex-wrap gap-1.5">
               {skills.map((s) => <SkillChip key={s} label={s} active />)}
@@ -133,6 +147,8 @@ export default function StudentProfile() {
           )}
         </Panel>
       </div>
+
+      <SkillBadgeModal open={badgeModalOpen} onClose={() => setBadgeModalOpen(false)} />
     </PageShell>
   );
 }

@@ -10,6 +10,7 @@ import { ApiError } from "@/lib/api/client";
 import { SKILLS_OPTIONS } from "@/lib/constants/skills";
 import { type BackendProject, type Difficulty } from "@/types/project";
 import { cn } from "@/lib/utils/cn";
+import { RecommendedProjects } from "@/components/domain/RecommendedProjects";
 
 const DIFFICULTIES: Difficulty[] = ["easy", "medium", "hard"];
 const DURATIONS = ["1 week", "2 weeks", "1 month", "2 months", "3 months", "6+ months"];
@@ -73,6 +74,8 @@ export default function StudentProjects() {
   return (
     <PageShell title="Available Projects" subtitle={loading ? "Loading…" : `${filtered.length} project${filtered.length === 1 ? "" : "s"} matching your filters`}>
       <OnboardingBanner />
+
+      <RecommendedProjects />
 
       <div className="mb-6 space-y-4">
         <div className="flex h-10 items-center gap-2 rounded-md border border-border-default bg-surface-2 px-3">

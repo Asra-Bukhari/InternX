@@ -11,6 +11,7 @@ import { applicationsApi } from "@/lib/api/applications";
 import { ApiError } from "@/lib/api/client";
 import { type BackendProject, applicantsCount, selectedStudentName } from "@/types/project";
 import type { BackendApplication } from "@/types/application";
+import { RecommendedApplicants } from "@/components/domain/RecommendedApplicants";
 
 function applicantToVM(a: BackendApplication, projectTags: string[]): ApplicantViewModel {
   const studentRef = a.studentId;
@@ -163,6 +164,8 @@ export default function BusinessProjectApplicants() {
           {project.contractType} · {project.difficulty} · {project.durationLabel || "—"}
         </div>
       </Panel>
+
+      {id && <RecommendedApplicants projectId={id} />}
 
       {applications.length === 0 ? (
         <Panel padding="p-12">

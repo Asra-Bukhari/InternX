@@ -27,6 +27,7 @@ import StudentMessages from "@/pages/student/Messages";
 import StudentProfile from "@/pages/student/Profile";
 import StudentProfileSetup from "@/pages/student/ProfileSetup";
 import StudentLevels from "@/pages/student/Levels";
+import TestPage from "@/pages/student/TestPage";
 
 import BusinessDashboard from "@/pages/business/Dashboard";
 import BusinessProjects from "@/pages/business/Projects";
@@ -105,5 +106,9 @@ export const router = createBrowserRouter([
       { path: "payments", Component: BusinessPayments },
       { path: "profile", Component: BusinessProfile },
     ],
+  },
+  {
+    path: "/test/:testId",
+    Component: TestPage,
   },
 ]);
