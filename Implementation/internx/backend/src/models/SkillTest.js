@@ -7,8 +7,8 @@ const questionSchema = new mongoose.Schema({
     enum: ["mcq", "coding", "short_answer"],
     required: true,
   },
-  options: [String], // only for MCQ
-  correctAnswer: { type: String }, // used internally for evaluation hint
+  options: [String],
+  correctAnswer: { type: String },
 });
 
 const skillTestSchema = new mongoose.Schema(
@@ -19,28 +19,31 @@ const skillTestSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Either a skill name (voluntary) or a project ID (application test)
     testType: {
       type: String,
       enum: ["skill_badge", "project_application"],
       required: true,
     },
-    skillTopic: { type: String }, // e.g. "UI/UX", "Machine Learning"
+    skillTopic: { type: String },
     projectId: { type: mongoose.Schema.Types.ObjectId, ref: "Project" },
 
     questions: [questionSchema],
 
-    // Student's submitted answers: { questionIndex: answerText }
     submittedAnswers: { type: Map, of: String },
 
     // Evaluation result
-    score: { type: Number }, // 0–100
+    score: { type: Number },
     passed: { type: Boolean },
-    feedback: { type: String }, // LLM's overall feedback
+    feedback: { type: String },
+
+    // Cheating detection
+    cheated: { type: Boolean, default: false },
+    cheatReason: { type: String }, // "no_face" | "multiple_faces" | "looking_away"
+    cheatMessage: { type: String }, // human readable detail
 
     status: {
       type: String,
-      enum: ["generated", "submitted", "evaluated"],
+      enum: ["generated", "submitted", "evaluated", "cheated"],
       default: "generated",
     },
   },

@@ -17,7 +17,7 @@ const paymentRoutes = require("./routes/paymentRoutes");
 const deliverableRoutes = require("./routes/deliverableRoutes");
 const reviewRoutes = require("./routes/reviewRoutes");
 const aiRoutes = require("./routes/aiRoutes");
-
+const recommendationRoutes = require("./routes/recommendationRoutes");
 
 app.use(express.json());
 
@@ -39,5 +39,6 @@ app.use("/api/payments", paymentRoutes);
 app.use("/api/deliverables", deliverableRoutes);
 app.use("/api/reviews", reviewRoutes);
 app.use("/api/ai", aiRoutes);
+app.use("/api/recommendations", recommendationRoutes);
 
 module.exports = app;

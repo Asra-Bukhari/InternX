@@ -4,6 +4,7 @@ const {
   generateSkillTest,
   generateProjectTest,
   evaluateTest,
+  flagCheating,
   getTest,
 } = require("../controllers/aiController");
 
@@ -16,7 +17,10 @@ router.post("/generate-project-test", generateProjectTest);
 // Submit answers + evaluate
 router.post("/evaluate-test", evaluateTest);
 
-// Get test by ID (to render questions on frontend)
+// Flag cheating (called by frontend when proctor detects violation)
+router.post("/flag-cheating", flagCheating);
+
+// Get test by ID
 router.get("/test/:testId", getTest);
 
 module.exports = router;

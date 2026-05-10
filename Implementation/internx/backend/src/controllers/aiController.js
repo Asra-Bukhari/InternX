@@ -1,6 +1,7 @@
 const Groq = require("groq-sdk");
 const SkillTest = require("../models/SkillTest");
 const Profile = require("../models/Profile");
+const Application = require("../models/Application");
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
@@ -37,6 +38,18 @@ const generateSkillTest = async (req, res) => {
 
     if (!studentId || !skillTopic) {
       return res.status(400).json({ message: "studentId and skillTopic are required." });
+    }
+
+    // Block if student has a cheated test for this topic
+    const cheatedTest = await SkillTest.findOne({
+      studentId,
+      skillTopic,
+      cheated: true,
+    });
+    if (cheatedTest) {
+      return res.status(403).json({
+        message: `You are banned from taking the ${skillTopic} skill test due to a cheating violation.`,
+      });
     }
 
     const prompt = `
@@ -120,6 +133,18 @@ const generateProjectTest = async (req, res) => {
       return res.status(400).json({ message: "studentId, projectId, and projectDescription are required." });
     }
 
+    // Block if student has a cheated test for this project
+    const cheatedTest = await SkillTest.findOne({
+      studentId,
+      projectId,
+      cheated: true,
+    });
+    if (cheatedTest) {
+      return res.status(403).json({
+        message: "You are banned from applying to this project due to a cheating violation.",
+      });
+    }
+
     const skillsList = Array.isArray(skillsRequired)
       ? skillsRequired.join(", ")
       : skillsRequired || "general";
@@ -201,7 +226,7 @@ Guidelines:
 
 // ─── 3. Submit & Evaluate Test ────────────────────────────────────────────────
 // POST /api/ai/evaluate-test
-// Body: { testId, answers: { "0": "answer", "1": "answer", ... } }
+// Body: { testId, answers: { "0": "answer", ... } }
 const evaluateTest = async (req, res) => {
   try {
     const { testId, answers } = req.body;
@@ -215,8 +240,10 @@ const evaluateTest = async (req, res) => {
     if (test.status === "evaluated") {
       return res.status(400).json({ message: "This test has already been evaluated." });
     }
+    if (test.status === "cheated") {
+      return res.status(403).json({ message: "This test was terminated due to a cheating violation." });
+    }
 
-    // Build Q&A pairs for the LLM
     const qaList = test.questions.map((q, i) => ({
       index: i,
       questionText: q.questionText,
@@ -275,6 +302,14 @@ Return a JSON object in this exact format:
       );
     }
 
+    // If project application test — update aiTestScore on the application using studentId + projectId
+    if (test.testType === "project_application" && test.projectId) {
+      await Application.findOneAndUpdate(
+        { studentId: test.studentId, projectId: test.projectId },
+        { aiTestScore: evaluation.score }
+      );
+    }
+
     res.status(200).json({
       message: "Test evaluated successfully.",
       testId: test._id,
@@ -292,7 +327,42 @@ Return a JSON object in this exact format:
   }
 };
 
-// ─── 4. Get test by ID ────────────────────────────────────────────────────────
+// ─── 4. Flag Cheating ─────────────────────────────────────────────────────────
+// POST /api/ai/flag-cheating
+// Body: { testId, reason, message }
+const flagCheating = async (req, res) => {
+  try {
+    const { testId, reason, message } = req.body;
+
+    if (!testId || !reason) {
+      return res.status(400).json({ message: "testId and reason are required." });
+    }
+
+    const test = await SkillTest.findById(testId);
+    if (!test) return res.status(404).json({ message: "Test not found." });
+
+    if (test.status === "cheated") {
+      return res.status(200).json({ message: "Test already marked as cheated." });
+    }
+
+    test.cheated = true;
+    test.cheatReason = reason;
+    test.cheatMessage = message || reason;
+    test.status = "cheated";
+    await test.save();
+
+    res.status(200).json({
+      message: "Test flagged as cheated. Student is banned from retaking.",
+      testId: test._id,
+      reason: test.cheatReason,
+    });
+  } catch (err) {
+    console.error("flagCheating error:", err);
+    res.status(500).json({ message: "Failed to flag cheating.", error: err.message });
+  }
+};
+
+// ─── 5. Get test by ID ────────────────────────────────────────────────────────
 // GET /api/ai/test/:testId
 const getTest = async (req, res) => {
   try {
@@ -312,8 +382,12 @@ const getTest = async (req, res) => {
       skillTopic: test.skillTopic,
       status: test.status,
       questions: safeQuestions,
+      cheated: test.cheated,
       ...(test.status === "evaluated"
         ? { score: test.score, passed: test.passed, feedback: test.feedback }
+        : {}),
+      ...(test.status === "cheated"
+        ? { cheatReason: test.cheatReason, cheatMessage: test.cheatMessage }
         : {}),
     });
   } catch (err) {
@@ -321,4 +395,4 @@ const getTest = async (req, res) => {
   }
 };
 
-module.exports = { generateSkillTest, generateProjectTest, evaluateTest, getTest };
+module.exports = { generateSkillTest, generateProjectTest, evaluateTest, flagCheating, getTest };
