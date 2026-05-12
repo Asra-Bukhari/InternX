@@ -56,6 +56,16 @@ export function DeliverablesTab({ projectId }: Props) {
     }
   }
 
+  async function onReject(id: string) {
+    try {
+      await deliverablesApi.reject(id);
+      const res = await deliverablesApi.forProject(projectId);
+      setItems(res);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not request revision.");
+    }
+  }
+
   return (
     <div className="space-y-3">
       <div>
@@ -98,6 +108,7 @@ export function DeliverablesTab({ projectId }: Props) {
                 note: d.fileUrl,
               }}
               onApprove={d.status === "pending" ? () => onApprove(d._id) : undefined}
+              onRequestRevision={d.status === "pending" ? () => onReject(d._id) : undefined}
             />
           ))}
         </div>

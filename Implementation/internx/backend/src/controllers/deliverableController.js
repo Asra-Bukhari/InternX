@@ -7,7 +7,7 @@ const Project = require("../models/Project");
 exports.submitDeliverable = async (req, res) => {
   try {
     const { projectId, fileUrl } = req.body;
-    const studentId = req.user.id;
+    const studentId = req.user._id;
 
     if (!projectId || !fileUrl) {
       return res.status(400).json({ message: "projectId and fileUrl are required" });
@@ -18,29 +18,49 @@ exports.submitDeliverable = async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    if (project.selectedStudent && project.selectedStudent.toString() !== studentId) {
+    if (project.selectedStudent && project.selectedStudent.toString() !== studentId.toString()) {
       return res.status(403).json({ message: "You are not assigned to this project" });
     }
 
-    const newDeliverable = new Deliverable({
+    // Check if rejected deliverable exists for resubmission
+    const rejectedDeliverable = await Deliverable.findOne({
       projectId,
       studentId,
-      fileUrl,
-    });
+      status: "rejected",
+    }).sort({ submittedAt: -1 }).limit(1);
 
-    await newDeliverable.save();
+    let deliverable;
+    let isResubmission = false;
+
+    if (rejectedDeliverable) {
+      // Update rejected deliverable for resubmission
+      rejectedDeliverable.fileUrl = fileUrl;
+      rejectedDeliverable.status = "pending";
+      rejectedDeliverable.submittedAt = new Date();
+      await rejectedDeliverable.save();
+      deliverable = rejectedDeliverable;
+      isResubmission = true;
+    } else {
+      // Create new deliverable
+      deliverable = new Deliverable({
+        projectId,
+        studentId,
+        fileUrl,
+      });
+      await deliverable.save();
+    }
 
     // Notify Business Owner
     const { createInternalNotification } = require("./notificationController");
     await createInternalNotification({
       userId: project.businessId,
-      title: "New Deliverable Submitted",
-      message: `A new deliverable has been submitted for project: ${project.title}`,
+      title: isResubmission ? "Deliverable Resubmitted" : "New Deliverable Submitted",
+      message: `${isResubmission ? "A resubmitted deliverable" : "A new deliverable"} has been submitted for project: ${project.title}`,
       type: "deliverable_submission",
       relatedProjectId: projectId,
     });
 
-    res.status(201).json({ message: "Deliverable submitted successfully", deliverable: newDeliverable });
+    res.status(201).json({ message: isResubmission ? "Deliverable resubmitted successfully" : "Deliverable submitted successfully", deliverable });
   } catch (error) {
     console.error("submitDeliverable error:", error);
     res.status(500).json({ message: "Server error" });
@@ -62,7 +82,7 @@ exports.getProjectDeliverables = async (req, res) => {
     const businessIdStr = project.businessId.toString();
     const selectedStudentStr = project.selectedStudent ? project.selectedStudent.toString() : null;
 
-    if (req.user.id !== businessIdStr && req.user.id !== selectedStudentStr) {
+    if (req.user._id.toString() !== businessIdStr && req.user._id.toString() !== selectedStudentStr) {
       return res.status(403).json({ message: "You are not authorized to view these deliverables" });
     }
 
@@ -92,6 +112,16 @@ exports.approveDeliverable = async (req, res) => {
     deliverable.status = "approved";
     await deliverable.save();
 
+    // Check if all deliverables are now approved
+    const project = deliverable.projectId;
+    const allDeliverables = await Deliverable.find({ projectId: project._id });
+    const allApproved = allDeliverables.every(d => d.status === "approved");
+    
+    if (allApproved && project.status !== "completed") {
+      project.status = "completed";
+      await project.save();
+    }
+
     // Notify Student
     const { createInternalNotification } = require("./notificationController");
     await createInternalNotification({
@@ -102,9 +132,44 @@ exports.approveDeliverable = async (req, res) => {
       relatedProjectId: deliverable.projectId._id,
     });
 
-    res.status(200).json({ message: "Deliverable approved", deliverable });
+    res.status(200).json({ message: "Deliverable approved", deliverable, projectUpdated: allApproved });
   } catch (error) {
     console.error("approveDeliverable error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// @desc    Business rejects/requests revision on deliverable
+// @route   PATCH /api/deliverables/:id/reject
+// @access  Private (Business only)
+exports.rejectDeliverable = async (req, res) => {
+  try {
+    const deliverable = await Deliverable.findById(req.params.id).populate("projectId");
+    
+    if (!deliverable) {
+      return res.status(404).json({ message: "Deliverable not found" });
+    }
+
+    if (deliverable.projectId.businessId.toString() !== req.user.id) {
+      return res.status(403).json({ message: "Only the project business owner can reject this" });
+    }
+
+    deliverable.status = "rejected";
+    await deliverable.save();
+
+    // Notify Student
+    const { createInternalNotification } = require("./notificationController");
+    await createInternalNotification({
+      userId: deliverable.studentId,
+      title: "Revision Requested",
+      message: `Please revise and resubmit your deliverable for project '${deliverable.projectId.title}'.`,
+      type: "deliverable_rejection",
+      relatedProjectId: deliverable.projectId._id,
+    });
+
+    res.status(200).json({ message: "Deliverable marked for revision", deliverable });
+  } catch (error) {
+    console.error("rejectDeliverable error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

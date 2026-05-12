@@ -7,6 +7,7 @@ const {
   submitDeliverable,
   getProjectDeliverables,
   approveDeliverable,
+  rejectDeliverable,
 } = require("../controllers/deliverableController");
 
 router.use(protect);
@@ -21,5 +22,6 @@ router.post("/", (req, res, next) => {
 }, restrictTo("student"), submitDeliverable);
 router.get("/:projectId", getProjectDeliverables);
 router.patch("/:id/approve", restrictTo("business"), approveDeliverable);
+router.patch("/:id/reject", restrictTo("business"), rejectDeliverable);
 
 module.exports = router;

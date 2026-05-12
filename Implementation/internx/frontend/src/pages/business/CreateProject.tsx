@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Send, AlertCircle, Plus, Trash2, Search } from "lucide-react";
 import { PageShell } from "@/components/forms/PageShell";
@@ -20,7 +20,7 @@ import { DifficultyTag } from "@/components/data-display/DifficultyTag";
 import { SectionHeader } from "@/components/domain/SectionHeader";
 import { projectsApi } from "@/lib/api/projects";
 import { ApiError } from "@/lib/api/client";
-import { SKILLS_OPTIONS } from "@/lib/constants/skills";
+import { SKILL_CATEGORIES, MAX_SKILL_CATEGORIES } from "@/lib/constants/skills";
 import type { Difficulty, ContractType, ProjectDeliverable } from "@/types/project";
 import { cn } from "@/lib/utils/cn";
 
@@ -75,7 +75,7 @@ export default function BusinessCreateProject() {
 
   // Section 2
   const [tags, setTags] = useState<string[]>([]);
-  const [tagQuery, setTagQuery] = useState("");
+  const [openCat, setOpenCat] = useState<string | null>(null);
 
   // Section 3
   const [description, setDescription] = useState("");
@@ -99,18 +99,17 @@ export default function BusinessCreateProject() {
 
   const wc = wordCount(description);
 
-  const filteredTags = useMemo(() => {
-    const q = tagQuery.trim().toLowerCase();
-    if (!q) return SKILLS_OPTIONS.slice(0, 30);
-    return SKILLS_OPTIONS.filter((s) => s.toLowerCase().includes(q)).slice(0, 30);
-  }, [tagQuery]);
+  const activeCats = SKILL_CATEGORIES
+    .filter((c) => c.skills.some((s) => tags.includes(s)))
+    .map((c) => c.name);
 
-  function toggleTag(t: string) {
+  function toggleTag(t: string, catName: string) {
     if (tags.includes(t)) {
       setTags(tags.filter((x) => x !== t));
       return;
     }
     if (tags.length >= MAX_TAGS) return;
+    if (!activeCats.includes(catName) && activeCats.length >= MAX_SKILL_CATEGORIES) return;
     setTags([...tags, t]);
   }
 
@@ -251,7 +250,7 @@ export default function BusinessCreateProject() {
         <Panel padding="p-6">
           <SectionHeader
             title="Technologies & Tags"
-            description={`Select ${MIN_TAGS}–${MAX_TAGS} tags · ${tags.length} selected`}
+            description={`Select ${MIN_TAGS}–${MAX_TAGS} tags from max ${MAX_SKILL_CATEGORIES} categories · ${tags.length} selected`}
           />
           {tags.length > 0 && (
             <div className="mb-3 flex flex-wrap gap-1.5 rounded-md border border-border-default bg-surface-2 p-3">
@@ -259,7 +258,7 @@ export default function BusinessCreateProject() {
                 <button
                   key={t}
                   type="button"
-                  onClick={() => toggleTag(t)}
+                  onClick={() => toggleTag(t, SKILL_CATEGORIES.find((c) => c.skills.includes(t as never))?.name ?? "")}
                   className="inline-flex items-center gap-1 rounded-md bg-brand/15 px-2 py-1 text-[12px] font-medium text-brand"
                 >
                   {t} <Trash2 size={10} />
@@ -267,19 +266,54 @@ export default function BusinessCreateProject() {
               ))}
             </div>
           )}
-          <div className="flex h-10 items-center gap-2 rounded-md border border-border-default bg-surface-2 px-3 mb-3">
-            <Search size={14} className="text-text-subtle" />
-            <input
-              value={tagQuery}
-              onChange={(e) => setTagQuery(e.target.value)}
-              placeholder="Search tags…"
-              className="flex-1 bg-transparent text-[13px] text-text outline-none placeholder:text-text-subtle"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {filteredTags.map((t) => (
-              <SkillChip key={t} label={t} active={tags.includes(t)} onClick={() => toggleTag(t)} />
-            ))}
+          <div className="space-y-1">
+            {SKILL_CATEGORIES.map((cat) => {
+              const isOpen = openCat === cat.name;
+              const catActive = activeCats.includes(cat.name);
+              const catBlocked = !catActive && activeCats.length >= MAX_SKILL_CATEGORIES;
+              return (
+                <div key={cat.name} className="rounded-md border border-border-default overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => setOpenCat(isOpen ? null : cat.name)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-4 py-2.5 text-[13px] font-medium text-left",
+                      catActive ? "bg-brand/10 text-brand" : "bg-surface-2 text-text",
+                      catBlocked && "opacity-40 cursor-not-allowed",
+                    )}
+                  >
+                    <span>{cat.name}{catActive ? ` (${cat.skills.filter((s) => tags.includes(s)).length})` : ""}</span>
+                    <Search size={13} className={cn("transition-transform", isOpen && "rotate-90")} />
+                  </button>
+                  {isOpen && (
+                    <div className="px-4 py-3 bg-surface-1 flex flex-wrap gap-1.5">
+                      {cat.skills.map((s) => {
+                        const selected = tags.includes(s);
+                        const blocked = !selected && (tags.length >= MAX_TAGS || catBlocked);
+                        return (
+                          <button
+                            key={s}
+                            type="button"
+                            disabled={blocked}
+                            onClick={() => toggleTag(s, cat.name)}
+                            className={cn(
+                              "rounded-md border px-2.5 py-1 text-[12px] transition-colors",
+                              selected
+                                ? "border-brand bg-brand/15 text-brand"
+                                : blocked
+                                ? "border-border-subtle text-text-subtle opacity-40 cursor-not-allowed"
+                                : "border-border-default bg-surface-2 text-text-dim hover:border-brand/50 hover:text-text",
+                            )}
+                          >
+                            {s}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </Panel>
 

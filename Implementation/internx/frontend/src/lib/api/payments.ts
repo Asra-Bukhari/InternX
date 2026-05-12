@@ -46,5 +46,7 @@ export const deliverablesApi = {
   submit: (payload: { projectId: string; fileUrl: string }) =>
     api.post<{ message: string; deliverable: BackendDeliverable }>("/api/deliverables", payload),
   approve: (id: string) =>
-    api.patch<{ message: string; deliverable: BackendDeliverable }>(`/api/deliverables/${id}/approve`),
+    api.patch<{ message: string; deliverable: BackendDeliverable; projectUpdated?: boolean }>(`/api/deliverables/${id}/approve`),
+  reject: (id: string) =>
+    api.patch<{ message: string; deliverable: BackendDeliverable }>(`/api/deliverables/${id}/reject`),
 };

@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useParams, Link } from "react-router";
-import { ArrowLeft, LayoutDashboard, ListChecks, MessageSquare, Video, FolderOpen, Package, AlertCircle } from "lucide-react";
+import { ArrowLeft, LayoutDashboard, ListChecks, MessageSquare, Package, AlertCircle } from "lucide-react";
 import { PageShell } from "@/components/forms/PageShell";
 import { GhostButton } from "@/components/forms/GhostButton";
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { OverviewTab } from "./workspace/OverviewTab";
 import { TasksTab } from "./workspace/TasksTab";
 import { ChatTab } from "./workspace/ChatTab";
-import { MeetingsTab } from "./workspace/MeetingsTab";
-import { FilesTab } from "./workspace/FilesTab";
 import { DeliverablesTab } from "./workspace/DeliverablesTab";
 import { projectsApi } from "@/lib/api/projects";
 import { ApiError } from "@/lib/api/client";
@@ -18,10 +16,8 @@ import { cn } from "@/lib/utils/cn";
 const TABS = [
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "tasks", label: "Tasks", icon: ListChecks },
-  { key: "chat", label: "Chat", icon: MessageSquare },
-  { key: "meetings", label: "Meetings", icon: Video },
-  { key: "files", label: "Files", icon: FolderOpen },
   { key: "deliverables", label: "Deliverables", icon: Package },
+  { key: "chat", label: "Chat", icon: MessageSquare },
 ] as const;
 
 type TabKey = typeof TABS[number]["key"];
@@ -121,11 +117,9 @@ export default function BusinessProjectWorkspace() {
       </div>
 
       {tab === "overview" && <OverviewTab project={project} selectedStudentName={studentName} />}
-      {tab === "tasks" && <TasksTab />}
+      {tab === "tasks" && <TasksTab projectId={project._id} project={project} />}
+      {tab === "deliverables" && <DeliverablesTab projectId={project._id} project={project} />}
       {tab === "chat" && <ChatTab projectId={project._id} receiverId={receiverId} />}
-      {tab === "meetings" && <MeetingsTab />}
-      {tab === "files" && <FilesTab />}
-      {tab === "deliverables" && <DeliverablesTab projectId={project._id} />}
     </PageShell>
   );
 }
