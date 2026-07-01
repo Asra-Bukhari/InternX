@@ -103,7 +103,9 @@ export const aiApi = {
 
 /* ── Proctoring — direct fetch to Python server (different origin) ── */
 
-const PROCTOR_BASE = "http://localhost:5001";
+const PROCTOR_BASE =
+  (import.meta.env.VITE_PROCTOR_BASE_URL as string | undefined)?.replace(/\/$/, "") ||
+  "http://localhost:5001";
 
 export async function analyzeFrame(frameBase64: string): Promise<ProctorAnalyzeResponse> {
   const token = getToken();
