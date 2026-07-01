@@ -35,5 +35,5 @@ def analyze():
     return jsonify(result), 200
 
 if __name__ == "__main__":
-    print("Starting InternX Proctor Server on port 5001...")
-    app.run(host="0.0.0.0", port=5001, debug=False)
+    print("Starting InternX Proctor Server on port 7860...")
+    app.run(host="0.0.0.0", port=7860, debug=False)
