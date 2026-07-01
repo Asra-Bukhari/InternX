@@ -26,7 +26,7 @@ export function SkillSelector({ value, onChange, lockedDaysLeft = 0 }: Props) {
     }
     if (value.length >= MAX_SKILLS) return;
     // Block if this would introduce a 3rd category
-    if (!activeCats.includes(catName) && activeCats.length >= MAX_SKILL_CATEGORIES) return;
+    if (!(activeCats as string[]).includes(catName) && activeCats.length >= MAX_SKILL_CATEGORIES) return;
     onChange([...value, skill]);
   }
 

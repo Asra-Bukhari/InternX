@@ -109,7 +109,7 @@ export default function BusinessCreateProject() {
       return;
     }
     if (tags.length >= MAX_TAGS) return;
-    if (!activeCats.includes(catName) && activeCats.length >= MAX_SKILL_CATEGORIES) return;
+    if (!(activeCats as string[]).includes(catName) && activeCats.length >= MAX_SKILL_CATEGORIES) return;
     setTags([...tags, t]);
   }
 

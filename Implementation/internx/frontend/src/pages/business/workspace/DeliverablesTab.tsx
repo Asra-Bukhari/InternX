@@ -7,7 +7,7 @@ import { PrimaryButton } from "@/components/forms/PrimaryButton";
 import { GhostButton } from "@/components/forms/GhostButton";
 import { deliverablesApi, type BackendDeliverable } from "@/lib/api/payments";
 import { ApiError } from "@/lib/api/client";
-import type { BackendProject } from "@/types/project";
+import type { BackendProject, ProjectDeliverable } from "@/types/project";
 
 interface Props {
   projectId: string;
@@ -26,14 +26,14 @@ function formatDate(iso?: string): string {
 type DeliverableGroup = "completed" | "current" | "pending" | "rejected" | "upcoming";
 
 interface GroupedItem {
-  definition: (typeof BackendProject.prototype.deliverables)[number];
+  definition: ProjectDeliverable;
   index: number;
   group: DeliverableGroup;
   submission?: BackendDeliverable;
 }
 
 function groupDeliverables(
-  definitions: typeof BackendProject.prototype.deliverables,
+  definitions: ProjectDeliverable[],
   submissions: BackendDeliverable[],
 ): GroupedItem[] {
   const result: GroupedItem[] = [];
